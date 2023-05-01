@@ -1,6 +1,6 @@
 from typing import Any
 from core.core_abstract import AbstractHandler
-from core.context import Context, ParquetContext
+from core.context import Context, ParquetContext, NTLContext
 
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType, DoubleType
@@ -80,8 +80,8 @@ class ParquetExtractor(AbstractHandler):
 
             df_acc = df_acc.union(curr_df)
         
-        return df_acc
+        return NTLContext(payload, df_acc)
 
     def handle(self, request: Any) -> Any:
-        return self.extract(request)
+        return super().handle(self.extract(request))
 

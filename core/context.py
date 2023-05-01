@@ -44,8 +44,38 @@ class ParquetContext(Context):
         self.__parquet_path = parquet_path
 
     @property
+    def context(self):
+        return self.__context
+    @context.setter
+    def context(self, value):
+        self.__context = value
+
+    @property
     def parquet_path(self):
         return self.__parquet_path
     @parquet_path.setter
     def parquet_path(self, value):
         self.__parquet_path = value
+
+class NTLContext(ParquetContext):
+    """
+    """
+    def __init__(self, context: Context, df):
+        self.__context = context
+        super().__init__(context, context.parquet_path)
+        self.__df = df
+
+    @property
+    def context(self):
+        return self.__context
+    @context.setter
+    def context(self, value):
+        self.__context = value
+
+    @property
+    def df(self):
+        return self.__df
+    @df.setter
+    def df(self, value):
+        self.__df = value
+

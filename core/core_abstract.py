@@ -34,6 +34,7 @@ class AbstractHandler(Handler):
     @abstractmethod
     def handle(self, request: Any) -> Any:
         if self._next_handler:
+            print("The next Hander must operate")
             return self._next_handler.handle(request)
 
         return None

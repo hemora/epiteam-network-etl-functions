@@ -1,4 +1,5 @@
 from extractors.ParquetExtractor import ParquetExtractor
+from transforms.NTLTransforms import NTLPreparation, NTLLocalWinner
 from wrappers.SparkWrapper import SparkWrapper
 from core.context import Context, ParquetContext
 from pyspark.sql import functions as F
@@ -11,13 +12,17 @@ load_dotenv()
 if __name__ == "__main__":
 
     sc = SparkWrapper("Test")
-    ctxt = Context("2020", "01", "01", sc.get_session())
-
+    ctxt = Context("2020", "01", "16", sc.get_session())
     ptxt = ParquetContext(ctxt, os.environ[f"MOVILIDAD_RAW_{ctxt.year}"])
+
     pe = ParquetExtractor()
+    ntl1 = NTLPreparation()
+    ntl2 = NTLLocalWinner()
+
+    pe.set_next(ntl1).set_next(ntl2)
 
     result = pe.handle(ptxt)
 
     print(type(result))
-    print(result.show(10))
-    print(result.select(F.to_date(F.col("cdmx_datetime"))).distinct().show(10))
+    print(result.show())
+    #print(result.select(F.to_date(F.col("cdmx_datetime"))).distinct().show(10))
