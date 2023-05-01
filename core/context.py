@@ -28,7 +28,8 @@ class Context:
         self.__day = value
     
 class ParquetContext(Context):
-
+    """
+    """
     def __init__(self, context: Context, parquet_path: str):
         self.__context = context
         super().__init__(context.year, context.month, context.day)
@@ -43,5 +44,3 @@ class ParquetContext(Context):
     @parquet_path.setter
     def parquet_path(self, value):
         self.__parquet_path = value
-
-    

@@ -24,7 +24,8 @@ if __name__ == "__main__":
     result = pe.handle(ptxt)
 
     print(type(result))
-    print(result.select(F.to_date(F.col("cdmx_datetime"))).distinct().show(10))
+    print(result.show(10))
+    #print(result.select(F.to_date(F.col("cdmx_datetime"))).distinct().show(10))
 
     #print(ptxt.parquet_path)
     #print(ptxt.day)

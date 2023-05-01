@@ -9,6 +9,11 @@ from datetime import timedelta, date, datetime
 from dateutil.relativedelta import *
 from dateutil.rrule import rrule, DAILY
 
+from pyspark.sql.functions import col, from_unixtime, lit, to_date, from_utc_timestamp
+
+from h3_pyspark.indexing import index_shape
+from h3_pyspark import geo_to_h3
+
 import os
 
 class ParquetExtractor(AbstractHandler):
@@ -41,6 +46,8 @@ class ParquetExtractor(AbstractHandler):
             , StructField('latitude', DoubleType(), True)
             , StructField('longitude', DoubleType(), True)
             , StructField('horizontal_accuracy', DoubleType(), True)
+            , StructField('h3index_12', StringType(), True)
+            , StructField('h3index_15', StringType(), True)
         ])
 
         # Se crea un DataFrame vacío que sirva como acumulador
@@ -58,13 +65,17 @@ class ParquetExtractor(AbstractHandler):
 
             curr_df = self.spark_wrapper.read.option("header", True) \
                 .parquet(f"{payload.parquet_path}/month={str(d.month).zfill(2)}/day={str(d.day).zfill(2)}") \
-                .where(F.col("horizontal_accuracy") >= F.lit(100.0)) \
+                .where(col("horizontal_accuracy") >= lit(100.0)) \
                 .distinct() \
-                .withColumn("utc_datetime", F.from_unixtime(F.col("utc_timestamp"))) \
-                .withColumn("cdmx_datetime", F.from_utc_timestamp(F.col("utc_datetime"), "America/Mexico_City")) \
-                .select("utc_timestamp", "cdmx_datetime", "caid", "latitude", "longitude", "horizontal_accuracy") \
+                .withColumn("utc_datetime", from_unixtime(col("utc_timestamp"))) \
+                .withColumn("cdmx_datetime", from_utc_timestamp(col("utc_datetime"), "America/Mexico_City")) \
+                .withColumn("h3index_12", geo_to_h3("latitude", "longitude", lit(12))) \
+                .withColumn("h3index_15", geo_to_h3("latitude", "longitude", lit(15))) \
+                .select("utc_timestamp", "cdmx_datetime"
+                        , "caid", "latitude", "longitude", "horizontal_accuracy"
+                        , "h3index_12", "h3index_15") \
                 .where(
-                    F.to_date(F.col("cdmx_datetime")) <= F.lit(date(int(payload.year), int(payload.month), int(payload.day)))
+                    to_date(col("cdmx_datetime")) <= lit(date(int(payload.year), int(payload.month), int(payload.day)))
                 )
 
             df_acc = df_acc.union(curr_df)
