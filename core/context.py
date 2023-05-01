@@ -1,10 +1,11 @@
 class Context:
     """
     """
-    def __init__(self, year: str, month: str, day: str):
+    def __init__(self, year: str, month: str, day: str, spark):
         self.__year = year
         self.__month = month
         self.__day = day
+        self.__spark = spark
 
     @property
     def year(self):
@@ -27,17 +28,21 @@ class Context:
     def day(self, value):
         self.__day = value
     
+    @property
+    def spark(self):
+        return self.__spark
+    @spark.setter
+    def spark(self, value):
+        self.__spark = value
+    
 class ParquetContext(Context):
     """
     """
     def __init__(self, context: Context, parquet_path: str):
         self.__context = context
-        super().__init__(context.year, context.month, context.day)
+        super().__init__(context.year, context.month, context.day, context.spark)
         self.__parquet_path = parquet_path
 
-    #def __init__(self, year: str, month: str, day: str):
-    #    super().__init__(year, month, day)
-    
     @property
     def parquet_path(self):
         return self.__parquet_path

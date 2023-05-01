@@ -11,23 +11,13 @@ load_dotenv()
 if __name__ == "__main__":
 
     sc = SparkWrapper("Test")
-    ctxt = Context("2020", "01", "01")
-
-
-    #print(ctxt.year)
-    #print(ctxt.month)
-    #print(ctxt.day)
+    ctxt = Context("2020", "01", "01", sc.get_session())
 
     ptxt = ParquetContext(ctxt, os.environ[f"MOVILIDAD_RAW_{ctxt.year}"])
-    pe = ParquetExtractor(sc.get_session(), ptxt)
+    pe = ParquetExtractor()
 
     result = pe.handle(ptxt)
 
     print(type(result))
     print(result.show(10))
-    #print(result.select(F.to_date(F.col("cdmx_datetime"))).distinct().show(10))
-
-    #print(ptxt.parquet_path)
-    #print(ptxt.day)
-    #print(ptxt.year)
-    #print(ptxt.month)
+    print(result.select(F.to_date(F.col("cdmx_datetime"))).distinct().show(10))

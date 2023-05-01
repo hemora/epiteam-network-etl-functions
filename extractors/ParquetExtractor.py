@@ -19,13 +19,13 @@ import os
 class ParquetExtractor(AbstractHandler):
     """
     """
-    def __init__(self, spark_wrapper, context: Context):
-        self.spark_wrapper = spark_wrapper
-        self.context = context
+    #def __init__(self, spark_wrapper, context: Context):
+    #    self.spark_wrapper = spark_wrapper
+    #    self.context = context
 
-    def trust_range_date(self, interval: int):
+    def trust_range_date(self, year:str, month:str, day: str,interval: int):
 
-        aux_day = date(int(self.context.year), int(self.context.month), int(self.context.day))
+        aux_day = date(int(year), int(month), int(day))
         start_day = aux_day - timedelta(days=int(interval / 2))
         end_day = aux_day + timedelta(days=+int(interval / 2))
 
@@ -51,11 +51,11 @@ class ParquetExtractor(AbstractHandler):
         ])
 
         # Se crea un DataFrame vacío que sirva como acumulador
-        emptyRDD = self.spark_wrapper.sparkContext.emptyRDD()
-        emptyDF = self.spark_wrapper.createDataFrame(emptyRDD,schema)
+        emptyRDD = payload.spark.sparkContext.emptyRDD()
+        emptyDF = payload.spark.createDataFrame(emptyRDD,schema)
         df_acc = emptyDF
 
-        dates = self.trust_range_date(10)
+        dates = self.trust_range_date(payload.year, payload.month, payload.day, 10)
 
         # Se unen iterativamente los dataframes que contienen al ageb candidato ganador por día
         for d in dates:
@@ -63,7 +63,7 @@ class ParquetExtractor(AbstractHandler):
             if d < datetime(2020, 1, 1):
                 continue
 
-            curr_df = self.spark_wrapper.read.option("header", True) \
+            curr_df = payload.spark.read.option("header", True) \
                 .parquet(f"{payload.parquet_path}/month={str(d.month).zfill(2)}/day={str(d.day).zfill(2)}") \
                 .where(col("horizontal_accuracy") >= lit(100.0)) \
                 .distinct() \
