@@ -30,6 +30,9 @@ class AbstractHandler(Handler):
         # convenient way like this:
         # monkey.set_next(squirrel).set_next(dog)
         return handler
+    
+    def has_next(self) -> bool:
+        return self._next_handler is not None
 
     @abstractmethod
     def handle(self, request: Any) -> Any:

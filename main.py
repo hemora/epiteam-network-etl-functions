@@ -1,5 +1,5 @@
 from extractors.ParquetExtractor import ParquetExtractor
-from transforms.NTLTransforms import NTLPreparation, NTLLocalWinner
+from transforms.NTLTransforms import NTLPreparation, NTLLocalWinner, LocalizationStage
 from wrappers.SparkWrapper import SparkWrapper
 from core.context import Context, ParquetContext
 from pyspark.sql import functions as F
@@ -18,6 +18,7 @@ if __name__ == "__main__":
     pe = ParquetExtractor()
     ntl1 = NTLPreparation()
     ntl2 = NTLLocalWinner()
+    #ntl3 = LocalizationStage()
 
     pe.set_next(ntl1).set_next(ntl2)
 

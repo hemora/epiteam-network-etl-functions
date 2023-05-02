@@ -1,17 +1,17 @@
 from typing import Any
 from core.core_abstract import AbstractHandler
-from core.context import Context, ParquetContext, NTLContext
+from core.context import Context, ParquetContext, NTLContext, LocalizationContext
 
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import *
 from dateutil.rrule import rrule, DAILY
 
 from pyspark.sql.window import Window
-from pyspark.sql.functions import col, from_unixtime, lit, row_number, from_utc_timestamp, hour
+from pyspark.sql.functions import col, from_unixtime, lit, row_number, from_utc_timestamp, hour, explode
 from pyspark.sql.types import StringType, StructField, StructType, DoubleType
 
 from h3_pyspark.indexing import index_shape
-from h3_pyspark import geo_to_h3
+from h3_pyspark import geo_to_h3, h3_to_parent
 
 
 class NTLPreparation(AbstractHandler):
@@ -102,10 +102,43 @@ class NTLLocalWinner(AbstractHandler):
         candidates = payload.df.groupBy("caid", "h3index_12").count() \
             .withColumn("rank", row_number().over(w)) \
             .where(col("rank") == 1) \
-            .select("caid", "h3index_12")
+            .select("caid", "h3index_12", h3_to_parent(col("h3index_12"), lit(5)).alias("h3index_5"))
 
+        #return LocalizationContext(payload.year, payload.month, payload.day, payload.spark
+        #                           , "./utils/ageb_catalog/", candidates)
         return candidates
+
+    def handle(self, request: Any) -> Any:
+        if self.has_next():
+            return super().handle(self.local_winner(request))
+        
+        return self.local_winner(request)
+    
+class LocalizationStage(AbstractHandler):
+    """
+    """
+    def locate(self, payload: LocalizationContext):
+        """
+        """
+        ageb_df = payload.spark.read.parquet(payload.catalog_path) \
+            .select("cve_geo", "geometry") \
+            .withColumn("h3polyfill_5", index_shape("geometry", lit(5))) \
+            .withColumn("h3polyfill_5", explode("h3polyfill_5")) \
+            .withColumn("h3polyfill_12", index_shape("geometry", lit(12))) \
+            .withColumn("h3polyfill_12", explode("h3polyfill_12"))
+        
+        candidates_unique = payload.df.select("h3index_5", "h3index_12").distinct()
+
+        located_pre = candidates_unique.alias("a") \
+            .join(ageb_df.alias("b")
+                  , col("a.h3index_5") == col("b.h3polyfill_5")
+                  , how="inner") \
+            .where(col("a.h3index_12") == col("b.h3polyfill_12"))
+        
+        return located_pre
+
 
 
     def handle(self, request: Any) -> Any:
-        return self.local_winner(request)
+        return self.locate(request)
+    

@@ -79,3 +79,25 @@ class NTLContext(ParquetContext):
     def df(self, value):
         self.__df = value
 
+class LocalizationContext(Context):
+    """
+    """
+    def __init__(self, year: str, month: str, day: str, spark
+                 , catalog_path: str, df):
+        super().__init__(year, month, day, spark)
+        self.__catalog_path = catalog_path
+        self.__df = df
+    
+    @property
+    def df(self):
+        return self.__df
+    @df.setter
+    def df(self, value):
+        self.__df = value
+    
+    @property
+    def catalog_path(self):
+        return self.__catalog_path
+    @catalog_path.setter
+    def catalog_path(self, value):
+        self.__catalog_path = value
