@@ -1,11 +1,29 @@
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+import logging
+
 class Context:
     """
     """
-    def __init__(self, year: str, month: str, day: str, spark):
+    def __init__(self, year: str, month: str, day: str, spark, log_file: str):
         self.__year = year
         self.__month = month
         self.__day = day
         self.__spark = spark
+        self.__parquet_path = os.environ[f"MOVILIDAD_RAW_{self.__year}"]
+        logging.basicConfig(filename=f"{os.environ['LOG_FILE']}/{log_file}",
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d -- %H:%M:%S',
+                    level=logging.INFO)
+        self.__logger = logging.getLogger(f'{log_file}')
+        self.__ageb_catalog = os.environ["AGEB_CATALOG"]
+        self.__df = None
+        self.__home_ageb_catalog = None
+        self.__duck = None
+        self.__interactions_table = None
 
     @property
     def year(self):
@@ -35,59 +53,27 @@ class Context:
     def spark(self, value):
         self.__spark = value
     
-class ParquetContext(Context):
-    """
-    """
-    def __init__(self, context: Context, parquet_path: str):
-        self.__context = context
-        super().__init__(context.year, context.month, context.day, context.spark)
-        self.__parquet_path = parquet_path
-
-    @property
-    def context(self):
-        return self.__context
-    @context.setter
-    def context(self, value):
-        self.__context = value
-
     @property
     def parquet_path(self):
         return self.__parquet_path
     @parquet_path.setter
     def parquet_path(self, value):
         self.__parquet_path = value
-
-class NTLContext(ParquetContext):
-    """
-    """
-    def __init__(self, context: Context, df):
-        self.__context = context
-        super().__init__(context, context.parquet_path)
-        self.__df = df
-
-    @property
-    def context(self):
-        return self.__context
-    @context.setter
-    def context(self, value):
-        self.__context = value
-
-    @property
-    def df(self):
-        return self.__df
-    @df.setter
-    def df(self, value):
-        self.__df = value
-
-class LocalizationContext(Context):
-    """
-    """
-    def __init__(self, year: str, month: str, day: str, spark
-                 , catalog_path: str, df):
-        super().__init__(year, month, day, spark)
-        self.__catalog_path = catalog_path
-        self.__df = df
     
+    @property
+    def logger(self):
+        return self.__logger
+    @logger.setter
+    def logger(self, value):
+        self.__logger = value
+    
+    @property
+    def ageb_catalog(self):
+        return self.__ageb_catalog
+    @ageb_catalog.setter
+    def ageb_catalog(self, value):
+        self.__ageb_catalog = value
+
     @property
     def df(self):
         return self.__df
@@ -96,8 +82,23 @@ class LocalizationContext(Context):
         self.__df = value
     
     @property
-    def catalog_path(self):
-        return self.__catalog_path
-    @catalog_path.setter
-    def catalog_path(self, value):
-        self.__catalog_path = value
+    def home_ageb_catalog(self):
+        return self.__home_ageb_catalog
+    @home_ageb_catalog.setter
+    def home_ageb_catalog(self, value):
+        self.__home_ageb_catalog = value
+
+    @property
+    def duck(self):
+        return self.__duck
+    @duck.setter
+    def duck(self, value):
+        self.__duck = value
+
+    @property
+    def interactions_table(self):
+        return self.__interactions_table
+    @interactions_table.setter
+    def interactions_table(self, value):
+        self.__interactions_table = value
+

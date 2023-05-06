@@ -2,3 +2,8 @@ __pycache__/
 raw_data/
 utils/
 .env
+logs/
+images/
+notebooks/
+temp/
+pato_queries/

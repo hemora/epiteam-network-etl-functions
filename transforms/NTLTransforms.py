@@ -1,13 +1,15 @@
 from typing import Any
 from core.core_abstract import AbstractHandler
-from core.context import Context, ParquetContext, NTLContext, LocalizationContext
+from core.context import Context
 
 from datetime import timedelta, date, datetime
 from dateutil.relativedelta import *
 from dateutil.rrule import rrule, DAILY
 
 from pyspark.sql.window import Window
-from pyspark.sql.functions import col, from_unixtime, lit, row_number, from_utc_timestamp, hour, explode
+from pyspark.sql.functions import col, isnull, lit, row_number, sum, count
+from pyspark.sql.functions import when, window
+from pyspark.sql.functions import from_unixtime, from_utc_timestamp, hour, to_date
 from pyspark.sql.types import StringType, StructField, StructType, DoubleType
 
 from h3_pyspark.indexing import index_shape
@@ -29,8 +31,7 @@ class NTLPreparation(AbstractHandler):
 
         return date_range
 
-
-    def prepare(self, payload: NTLContext):
+    def prepare(self, payload: Context):
         """
         """
         ## Se obtienen los CAIDS distintos
@@ -86,27 +87,50 @@ class NTLPreparation(AbstractHandler):
                   , col("a.caid") == col("b.caid")
                   , how="inner") \
             .select(col("b.*"))
+    
+        payload.home_ageb_catalog = prepared_df
         
-        return NTLContext(payload.context, prepared_df)
+        return payload
 
     def handle(self, request: Any) -> Any:
-        #return self.prepare(request)
-        return super().handle(self.prepare(request))
+        if self.has_next():
+            return super().handle(self.prepare(request))
+        
+        return self.prepare(request)
     
-class NTLLocalWinner(AbstractHandler):
+class NTLCountWinner(AbstractHandler):
 
-    def local_winner(self, payload: NTLContext):
+    def local_winner(self, payload: Context):
         """
         """
+        payload.logger.info("Computing Candidates with Sum")
+        #payload.logger.info(f"Number of distinct caids: {payload.home_ageb_catalog.persist().select('caid').distinct().count()}")
+
         w = Window().partitionBy("caid").orderBy(col("count").desc())
-        candidates = payload.df.groupBy("caid", "h3index_12").count() \
-            .withColumn("rank", row_number().over(w)) \
-            .where(col("rank") == 1) \
-            .select("caid", "h3index_12", h3_to_parent(col("h3index_12"), lit(5)).alias("h3index_5"))
+        w_by_caids = Window().partitionBy("caid")
+        candidates = payload.home_ageb_catalog.groupBy(
+                "caid", "h3index_12", to_date(col("cdmx_datetime")).alias("cdmx_date")
+            ) \
+            .agg(count(col("*")).alias("pings_per_day")) \
+            .withColumn("total_pings", sum(col("pings_per_day")).over(w_by_caids)) \
+            .where(
+                (col("total_pings") >= lit(10)) & (col("pings_per_day") >= lit(5))
+            )
+        
+        w_by_score = Window().partitionBy("caid").orderBy(col("score").desc())
+        winners = candidates.groupBy(
+                "caid", "h3index_12"
+            ) \
+            .agg(sum(col("pings_per_day")).alias("score")) \
+            .withColumn("rank", row_number().over(w_by_score)) \
+            .where(col("rank") == lit(1))
 
-        #return LocalizationContext(payload.year, payload.month, payload.day, payload.spark
-        #                           , "./utils/ageb_catalog/", candidates)
-        return candidates
+        #payload.logger.info(f"Number of distinct caids: {winners.select('caid').distinct().count()}")
+        #payload.logger.info(f"Number of regs: {winners.count()}")
+
+        payload.home_ageb_catalog = winners
+
+        return payload
 
     def handle(self, request: Any) -> Any:
         if self.has_next():
@@ -114,31 +138,38 @@ class NTLLocalWinner(AbstractHandler):
         
         return self.local_winner(request)
     
-class LocalizationStage(AbstractHandler):
-    """
-    """
-    def locate(self, payload: LocalizationContext):
+
+class NTLJoiner(AbstractHandler):
+
+    def join(self, payload: Context):
         """
         """
-        ageb_df = payload.spark.read.parquet(payload.catalog_path) \
-            .select("cve_geo", "geometry") \
-            .withColumn("h3polyfill_5", index_shape("geometry", lit(5))) \
-            .withColumn("h3polyfill_5", explode("h3polyfill_5")) \
-            .withColumn("h3polyfill_12", index_shape("geometry", lit(12))) \
-            .withColumn("h3polyfill_12", explode("h3polyfill_12"))
-        
-        candidates_unique = payload.df.select("h3index_5", "h3index_12").distinct()
+        payload.logger.info("Adding home_agebs")
+        #payload.logger.info(f"Total Caids: {payload.df.select('caid').distinct().count()}" )
 
-        located_pre = candidates_unique.alias("a") \
-            .join(ageb_df.alias("b")
-                  , col("a.h3index_5") == col("b.h3polyfill_5")
-                  , how="inner") \
-            .where(col("a.h3index_12") == col("b.h3polyfill_12"))
-        
-        return located_pre
+        joined_df = payload.df.alias("a").join(
+                payload.home_ageb_catalog.alias("b")
+                , col("a.caid") == col("b.caid")
+                , how="left"
+            ) \
+            .select(col("a.*")
+                    , when(isnull(col("b.h3index_12")), lit("000000000000000")).otherwise(col("b.h3index_12")).alias("home_ageb")) 
 
+        payload.df = joined_df
 
+        payload.df.write.mode("overwrite").parquet("./temp/procesed_pings.parquet")
+
+        #payload.logger.info(
+        #    f"Caids with home_ageb: {joined_df.where(col('home_ageb') != lit('000000000000000')).select('caid').distinct().count()}"
+        #    )
+        #payload.logger.info(
+        #    f"Caids without home_ageb: {joined_df.where(col('home_ageb') == lit('000000000000000')).select('caid').distinct().count()}"
+        #    )
+
+        return payload
 
     def handle(self, request: Any) -> Any:
-        return self.locate(request)
-    
+        if self.has_next():
+            return super().handle(self.join(request))
+        
+        return self.join(request)

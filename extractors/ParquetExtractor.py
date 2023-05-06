@@ -1,8 +1,7 @@
 from typing import Any
 from core.core_abstract import AbstractHandler
-from core.context import Context, ParquetContext, NTLContext
+from core.context import Context
 
-from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType, DoubleType
 
 from datetime import timedelta, date, datetime
@@ -36,9 +35,11 @@ class ParquetExtractor(AbstractHandler):
         return date_range
         
     
-    def extract(self, payload: ParquetContext):
+    def extract(self, payload: Context):
         """
         """
+        payload.logger.info("Extract Stage")
+
         schema = StructType([
             StructField('utc_timestamp', StringType(), True)
             , StructField('cdmx_datetime', StringType(), True)
@@ -75,13 +76,18 @@ class ParquetExtractor(AbstractHandler):
                         , "caid", "latitude", "longitude", "horizontal_accuracy"
                         , "h3index_12", "h3index_15") \
                 .where(
-                    to_date(col("cdmx_datetime")) <= lit(date(int(payload.year), int(payload.month), int(payload.day)))
+                    to_date(col("cdmx_datetime")) == lit(date(int(payload.year), int(payload.month), int(payload.day)))
                 )
 
             df_acc = df_acc.union(curr_df)
         
-        return NTLContext(payload, df_acc)
+        payload.df = df_acc
+        
+        return payload
 
     def handle(self, request: Any) -> Any:
-        return super().handle(self.extract(request))
+        if self.has_next():
+            return super().handle(self.extract(request))
+        
+        return self.extract(request)
 
