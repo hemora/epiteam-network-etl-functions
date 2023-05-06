@@ -82,8 +82,8 @@ if __name__ == "__main__":
 
     plt.clf()
 
-    nx.draw(sbm_original)
-    plt.savefig("./images/graph.png")
+    #nx.draw(sbm_original)
+    #plt.savefig("./images/graph.png")
 
 
 
