@@ -1,6 +1,6 @@
 __pycache__/
 raw_data/
-utils/
+tools/
 .env
 logs/
 images/
