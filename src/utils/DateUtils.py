@@ -16,6 +16,20 @@ def trusted_range(year: str, month: str, day: str, interval_size: int):
 
     return date_range
 
+def get_last_dates(year: str, month: str, day: str, offset: int):
+    """
+    """
+    aux_day = date(int(year), int(month), int(day))
+    start_day = aux_day - timedelta(days=offset)
+    end_day = aux_day - timedelta(days=1)
+
+    print(f"{start_day} <----> {end_day}")
+
+    date_range = [dt for dt in rrule(DAILY, dtstart=start_day, until=end_day) \
+                  if dt >= datetime(2020, 1, 1)]
+
+    return date_range
+
 
 
 

@@ -5,7 +5,9 @@ from utils.duckaccess import DuckSession
 
 import utils.DateUtils as du
 
-from extractors.extractqueries import ExtractQueries
+from queries.extractqueries import ExtractQueries
+
+from pandas import concat
 
 class ParquetExtractor(AbstractHandler):
     """
@@ -29,8 +31,12 @@ class ParquetExtractor(AbstractHandler):
 
                 if not result.empty:
                     dfs.append(result)
+        
+        big_union = concat(dfs)
 
-        context.payload = dfs
+        big_union.to_parquet("../temp/raw_pings.parquet")
+
+        context.payload = big_union
 
         return context
 

@@ -40,6 +40,7 @@ class ExtractContext(Context):
         super().__init__(year, month, day)
         self.__data_source = os.environ[f"MOVILIDAD_RAW_{year}"] \
             if year in ["2020", "2021"] else sys.exit("Invalid Year")
+        self.__raw_pings_target = os.environ[f"RAW_PINGS_TARGET"]
         self.__payload = None
     
     @property
@@ -50,9 +51,23 @@ class ExtractContext(Context):
         self.__data_source = value
 
     @property
+    def raw_pings_target(self):
+        return self.__raw_pings_target
+    @raw_pings_target.setter
+    def payload(self, value):
+        self.__raw_pings_target = value
+    
+    @property
     def payload(self):
         return self.__payload
     @payload.setter
     def payload(self, value):
         self.__payload = value
+
+class TransformContext(ExtractContext):
+    """
+    """
+    def __init__(self, year: str, month: str, day: str):
+        super().__init__(year, month, day)
+        self.__payload = None
     
