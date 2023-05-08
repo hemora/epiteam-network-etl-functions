@@ -46,3 +46,20 @@ class NTLQueries(Enum):
     )
     WHERE rank = 1
     """.strip()
+
+    JOIN = lambda p : f"""
+    WITH
+    raw_data AS (
+        SELECT *
+        FROM read_parquet('{p}')
+    )
+
+    SELECT a.utc_timestamp, a.cdmx_datetime, a.caid
+        , a.latitude, a.longitude, a.horizontal_accuracy
+        , IF(b.h3index_12 IS NULL, '000000000000000', b.h3index_12) AS home_h3index_12
+    FROM 
+        raw_data AS a
+        LEFT JOIN
+        home_ageb_catalog AS b
+        ON a.caid = b.caid
+    """.strip()

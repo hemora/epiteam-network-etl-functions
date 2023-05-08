@@ -69,5 +69,20 @@ class TransformContext(ExtractContext):
     """
     def __init__(self, year: str, month: str, day: str):
         super().__init__(year, month, day)
-        self.__payload = None
+        self.__ageb_catalog = os.environ["AGEB_CATALOG"]
+        self.__ntl_pings_target = os.environ["NTL_PINGS_TARGET"]
+
+    @property
+    def ageb_catalog(self):
+        return self.__ageb_catalog
+    @ageb_catalog.setter
+    def ageb_catalog(self, value):
+        self.__ageb_catalog = value
+    
+    @property
+    def ntl_pings_target(self):
+        return self.__ntl_pings_target
+    @ntl_pings_target.setter
+    def ntl_pings_target(self, value):
+        self.__ntl_pings_target = value
     

@@ -8,7 +8,10 @@ from queries.extractqueries import ExtractQueries
 from utils.duckaccess import DuckSession
 import utils.DateUtils as du
 
+from shapely.geometry import Point, shape
+from geopandas import GeoDataFrame
 from h3 import h3
+import json
 
 from pandas import concat
 
@@ -71,8 +74,6 @@ class NTLWinners(AbstractHandler):
 
         last_n_days_data = context.payload
 
-        print(type(NTLQueries.WINNERS))
-        
         with DuckSession() as duck:
 
             candidates = duck.sql(
@@ -87,3 +88,93 @@ class NTLWinners(AbstractHandler):
 
     def handle(self, request: Any) -> Any:
         return super().handle(self.get_winners(request))
+
+class NTLJoiner(AbstractHandler):
+
+    def join(self, context: TransformContext):
+        
+        home_ageb_catalog = context.payload
+        print(f"Home Ageb catalog shape: {home_ageb_catalog.shape}")
+
+        with DuckSession() as duck:
+
+            pings_with_agebs = duck.sql(
+                NTLQueries.JOIN(context.raw_pings_target)
+            ).df()
+
+        pings_with_agebs.to_parquet(context.ntl_pings_target)
+            
+        context.payload = pings_with_agebs
+
+        return context
+
+    def handle(self, request: Any) -> Any:
+        return super().handle(self.join(request))
+
+class NTLLocator(AbstractHandler):
+
+    def locate(self, context: TransformContext):
+        
+        with DuckSession() as duck:
+
+            pings = duck.sql(f"""
+                WITH
+                pre AS (
+                    SELECT *
+                    FROM read_parquet('{context.ntl_pings_target}')
+                    WHERE home_h3index_12 != '000000000000000'
+                )
+
+                SELECT *
+                FROM pre
+            """).df()
+            pings["aux_latitude"] = pings["home_h3index_12"].apply(lambda x : h3.h3_to_geo(x)[0])
+            pings["aux_longitude"] = pings["home_h3index_12"].apply(lambda x : h3.h3_to_geo(x)[1])
+            pings["geometry"] = pings[["aux_latitude", "aux_longitude"]].apply(lambda x : Point(x["aux_longitude"], x["aux_latitude"]), axis=1)
+
+            agebs = duck.sql(f"""
+                WITH
+                pre AS (
+                    SELECT *
+                    FROM read_parquet('{context.ageb_catalog}')
+                )
+
+                SELECT *
+                FROM pre
+            """).df()
+            agebs["geometry"] = agebs["geometry"].apply(lambda x: shape(json.loads(x)))
+
+        gdf_L = GeoDataFrame(pings, geometry='geometry', crs="EPSG:4326")
+        gdf_R = GeoDataFrame(agebs, geometry='geometry', crs="EPSG:4326")
+
+        joined = gdf_L.sjoin(gdf_R, how="left")
+        joined["h3index_12"] = joined[["latitude", "longitude"]] \
+            .apply(lambda x : h3.geo_to_h3(x["latitude"], x["longitude"], 12), axis=1)
+        joined["h3index_15"] = joined[["latitude", "longitude"]] \
+            .apply(lambda x : h3.geo_to_h3(x["latitude"], x["longitude"], 15), axis=1)
+
+        located_df = joined[["utc_timestamp", "cdmx_datetime", "caid", "latitude", "longitude"
+                             , "horizontal_accuracy", "h3index_12", "h3index_15", "home_h3index_12"
+                             , "cve_geo", "cve_agee", "nom_agee", "nom_agem"]]
+        
+        with DuckSession() as duck:
+        
+            located_df = duck.sql("""
+                SELECT utc_timestamp, cdmx_datetime, caid
+                    , latitude, longitude, horizontal_accuracy
+                    , home_h3index_12
+                    , cve_geo AS home_ageb
+                    , cve_agee AS home_agee
+                    , nom_agee AS home_agee_nom
+                    , nom_agem AS home_agem_nom
+                FROM located_df
+            """).df()
+
+        located_df.to_parquet("./temp/located_pings.parquet")
+        
+        context.payload = located_df
+
+        return context
+
+    def handle(self, request: Any) -> Any:
+        return super().handle(self.locate(request))
