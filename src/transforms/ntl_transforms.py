@@ -10,6 +10,8 @@ import utils.DateUtils as du
 
 from shapely.geometry import Point, shape
 from geopandas import GeoDataFrame
+from pandas import concat
+import numpy as np
 from h3 import h3
 import json
 
@@ -117,17 +119,9 @@ class NTLLocator(AbstractHandler):
         
         with DuckSession() as duck:
 
-            pings = duck.sql(f"""
-                WITH
-                pre AS (
-                    SELECT *
-                    FROM read_parquet('{context.ntl_pings_target}')
-                    WHERE home_h3index_12 != '000000000000000'
-                )
-
-                SELECT *
-                FROM pre
-            """).df()
+            pings = duck.sql(
+                NTLQueries.SELECT_IF_EXISTS(context.ntl_pings_target)
+            ).df()
             pings["aux_latitude"] = pings["home_h3index_12"].apply(lambda x : h3.h3_to_geo(x)[0])
             pings["aux_longitude"] = pings["home_h3index_12"].apply(lambda x : h3.h3_to_geo(x)[1])
             pings["geometry"] = pings[["aux_latitude", "aux_longitude"]].apply(lambda x : Point(x["aux_longitude"], x["aux_latitude"]), axis=1)
@@ -156,6 +150,46 @@ class NTLLocator(AbstractHandler):
         located_df = joined[["utc_timestamp", "cdmx_datetime", "caid", "latitude", "longitude"
                              , "horizontal_accuracy", "h3index_12", "h3index_15", "home_h3index_12"
                              , "cve_geo", "cve_agee", "nom_agee", "nom_agem"]]
+        located_df = located_df.rename(columns={"cve_geo": "home_ageb", "cve_agee" : "home_agee", "nom_agee" : "home_agee_nom", "nom_agem" : "home_agem_nom"})
+
+        print(located_df)
+        print(located_df.columns)
+
+        located_df["geometry"] = pings[["latitude", "longitude"]].apply(lambda x : Point(x["longitude"], x["latitude"]), axis=1)
+        located_df = GeoDataFrame(located_df, geometry="geometry", crs="EPSG:4326")
+        located_df = located_df.sjoin(gdf_R, how="left")
+        located_df = located_df[["utc_timestamp", "cdmx_datetime", "caid", "latitude", "longitude"
+                             , "horizontal_accuracy", "h3index_12", "h3index_15", "home_h3index_12"
+                             , "home_ageb", "home_agee", "home_agee_nom", "home_agem_nom", "cve_agee"]]
+
+        
+        if not context.only_if_exists :
+
+            with DuckSession() as duck:
+
+                not_existant = duck.sql(
+                    NTLQueries.SELECT_NOT_EXISTS(context.ntl_pings_target)
+                ).df()
+
+                not_existant["h3index_12"] = joined[["latitude", "longitude"]] \
+                    .apply(lambda x : h3.geo_to_h3(x["latitude"], x["longitude"], 12), axis=1)
+                not_existant["h3index_15"] = joined[["latitude", "longitude"]] \
+                    .apply(lambda x : h3.geo_to_h3(x["latitude"], x["longitude"], 15), axis=1)
+                
+                not_existant["home_ageb"] = np.nan
+                not_existant["home_agee"] = np.nan
+                not_existant["home_agee_nom"] = np.nan
+                not_existant["home_agem_nom"] = np.nan
+                not_existant["cve_agee"] = np.nan
+
+                not_existant = not_existant[["utc_timestamp", "cdmx_datetime", "caid", "latitude", "longitude"
+                             , "horizontal_accuracy", "h3index_12", "h3index_15", "home_h3index_12"
+                             , "home_ageb", "home_agee", "home_agee_nom", "home_agem_nom", "cve_agee"]]
+                
+            located_df = concat([not_existant, located_df])
+
+            print(located_df.columns)
+            print(located_df)
         
         with DuckSession() as duck:
         
@@ -164,10 +198,11 @@ class NTLLocator(AbstractHandler):
                     , latitude, longitude, horizontal_accuracy
                     , h3index_12, h3index_15
                     , home_h3index_12
-                    , cve_geo AS home_ageb
-                    , cve_agee AS home_agee
-                    , nom_agee AS home_agee_nom
-                    , nom_agem AS home_agem_nom
+                    , home_ageb
+                    , home_agee
+                    , home_agee_nom
+                    , home_agem_nom
+                    , cve_agee
                 FROM located_df
             """).df()
 

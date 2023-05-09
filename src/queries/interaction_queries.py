@@ -9,8 +9,8 @@ class InteractionQueries(Enum):
         SELECT *
             , MIN(cdmx_datetime) OVER() AS min_datetime
         FROM read_parquet('{p}')
-        WHERE home_ageb IS NOT NULL
-            AND home_agee IN ('09', '13', '15')
+        WHERE home_ageb IS NOT NULL 
+            AND cve_agee IN ('09', '13', '15')
     )
 
     , pings_base AS (

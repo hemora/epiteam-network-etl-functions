@@ -22,7 +22,7 @@ class InteractionsCompute(AbstractHandler):
                         InteractionQueries.ALL_INTERACTIONS(context.pings_base)
             ).df()
         
-        #interactions_table.to_parquet("./temp/interactions_table.parquet")
+        interactions_table.to_parquet("./temp/interactions_table.parquet")
 
         context.payload = interactions_table
         

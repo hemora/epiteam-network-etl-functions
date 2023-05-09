@@ -63,3 +63,27 @@ class NTLQueries(Enum):
         home_ageb_catalog AS b
         ON a.caid = b.caid
     """.strip()
+
+    SELECT_IF_EXISTS = lambda p : f"""
+    WITH
+    pre AS (
+        SELECT *
+        FROM read_parquet('{p}')
+        WHERE home_h3index_12 != '000000000000000'
+    )
+
+    SELECT *
+    FROM pre
+    """.strip()
+
+    SELECT_NOT_EXISTS = lambda p : f"""
+    WITH
+    pre AS (
+        SELECT *
+        FROM read_parquet('{p}')
+        WHERE home_h3index_12 = '000000000000000'
+    )
+
+    SELECT *
+    FROM pre
+    """.strip()

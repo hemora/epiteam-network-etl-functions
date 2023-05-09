@@ -67,10 +67,11 @@ class ExtractContext(Context):
 class TransformContext(ExtractContext):
     """
     """
-    def __init__(self, year: str, month: str, day: str):
+    def __init__(self, year: str, month: str, day: str, only_if_exists: bool = True):
         super().__init__(year, month, day)
         self.__ageb_catalog = os.environ["AGEB_CATALOG"]
         self.__ntl_pings_target = os.environ["NTL_PINGS_TARGET"]
+        self.__only_if_exists = only_if_exists
 
     @property
     def ageb_catalog(self):
@@ -85,6 +86,13 @@ class TransformContext(ExtractContext):
     @ntl_pings_target.setter
     def ntl_pings_target(self, value):
         self.__ntl_pings_target = value
+    
+    @property
+    def only_if_exists(self):
+        return self.__only_if_exists
+    @only_if_exists.setter
+    def only_if_exists(self, value):
+        self.__only_if_exists = value
     
 class InteractionsContext(Context):
     """
@@ -115,3 +123,17 @@ class InteractionsContext(Context):
     @payload.setter
     def payload(self, value):
         self.__payload = value
+
+class MatrixContext(InteractionsContext):
+    """
+    """
+    def __init__(self, year: str, month: str, day: str, in_vm: bool = True):
+        super().__init__(year, month, day, in_vm)
+        self.__interactions = os.environ["INTERACTIONS_TABLE"]
+    
+    @property
+    def interactions(self):
+        return self.__interactions
+    @interactions.setter
+    def interactions(self, value):
+        self.__interactions = value
