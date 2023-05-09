@@ -162,6 +162,7 @@ class NTLLocator(AbstractHandler):
             located_df = duck.sql("""
                 SELECT utc_timestamp, cdmx_datetime, caid
                     , latitude, longitude, horizontal_accuracy
+                    , h3index_12, h3index_15
                     , home_h3index_12
                     , cve_geo AS home_ageb
                     , cve_agee AS home_agee

@@ -86,3 +86,32 @@ class TransformContext(ExtractContext):
     def ntl_pings_target(self, value):
         self.__ntl_pings_target = value
     
+class InteractionsContext(Context):
+    """
+    """
+    def __init__(self, year: str, month: str, day: str, in_vm: bool = True):
+        super().__init__(year, month, day)
+        self.__in_vm = in_vm
+        self.__pings_base = os.environ["LOCATED_PINGS_TARGET"]
+        self.__payload = None
+    
+    @property
+    def in_vm(self):
+        return self.__in_vm
+    @in_vm.setter
+    def in_vm(self, value):
+        self.__in_vm = value
+    
+    @property
+    def pings_base(self):
+        return self.__pings_base
+    @pings_base.setter
+    def pings_base(self, value):
+        self.__pings_base = value
+    
+    @property
+    def payload(self):
+        return self.__payload
+    @payload.setter
+    def payload(self, value):
+        self.__payload = value

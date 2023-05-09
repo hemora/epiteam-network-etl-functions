@@ -1,6 +1,7 @@
 from extractors.DuckPoweredExtractors import ParquetExtractor
 from transforms.ntl_transforms import NTLPreparation, NTLWinners, NTLJoiner, NTLLocator
-from core.context import ExtractContext, TransformContext
+from core.context import ExtractContext, TransformContext, InteractionsContext
+from transforms.interactions_transforms import InteractionsCompute
 
 import time
 from datetime import timedelta
@@ -26,18 +27,29 @@ if __name__ == "__main__":
 
     #pe = ParquetExtractor()
 
-    ctxt = TransformContext("2020", "01", "16")
+    #ctxt = TransformContext("2020", "01", "16")
+
+    #with T():
+
+    #    ntl1 = NTLPreparation()
+    #    ntl2 = NTLWinners()
+    #    ntl3 = NTLJoiner()
+    #    ntl4 = NTLLocator()
+
+    #    ntl1.set_next(ntl2).set_next(ntl3).set_next(ntl4)
+    
+    #    result = ntl1.handle(ctxt)
+
+
+    ctxt = InteractionsContext("2020", "01", "16")
 
     with T():
 
-        ntl1 = NTLPreparation()
-        ntl2 = NTLWinners()
-        ntl3 = NTLJoiner()
-        ntl4 = NTLLocator()
+        ic1 = InteractionsCompute()
 
-        ntl1.set_next(ntl2).set_next(ntl3).set_next(ntl4)
+        result = ic1.handle(ctxt)
 
-        result = ntl1.handle(ctxt)
+
 
     print(type(result.payload))
     print(result.payload)
