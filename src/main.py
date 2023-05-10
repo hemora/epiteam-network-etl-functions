@@ -31,9 +31,9 @@ if __name__ == "__main__":
 
         pe = ParquetExtractor()
 
-    result = pe.handle(ctxt)
+        result = pe.handle(ctxt)
 
-    ctxt = TransformContext("2020", "01", "16")
+    ctxt = TransformContext("2020", "01", "16", False)
 
     with T():
 
@@ -47,29 +47,29 @@ if __name__ == "__main__":
         result = ntl1.handle(ctxt)
 
 
-    ctxt = InteractionsContext("2020", "01", "16")
+    #ctxt = InteractionsContext("2020", "01", "16")
 
-    with T():
+    #with T():
 
-         ic1 = InteractionsCompute()
+    #     ic1 = InteractionsCompute()
 
-         result = ic1.handle(ctxt)
+    #     result = ic1.handle(ctxt)
 
-    ctxt = MatrixContext("2020", "01", "16")
+    #ctxt = MatrixContext("2020", "01", "16")
 
-    with T():
+    #with T():
 
-        mtx1 = SizesMatrix()
-        mtx2 = TotalEdgesMatrix()
-        mtx3 = ObservedMatrix()
-        mtx4 = TotalVsObservedMatrix()
-        mtx5 = ProbAndSizesMatrix()
-        mtx6 = NetworkGen()
+    #    mtx1 = SizesMatrix()
+    #    mtx2 = TotalEdgesMatrix()
+    #    mtx3 = ObservedMatrix()
+    #    mtx4 = TotalVsObservedMatrix()
+    #    mtx5 = ProbAndSizesMatrix()
+    #    mtx6 = NetworkGen()
 
-        mtx1.set_next(mtx2).set_next(mtx3) \
-            .set_next(mtx4).set_next(mtx5).set_next(mtx6)
+    #    mtx1.set_next(mtx2).set_next(mtx3) \
+    #        .set_next(mtx4).set_next(mtx5).set_next(mtx6)
 
-        result = mtx1.handle(ctxt)
+    #    result = mtx1.handle(ctxt)
 
 
 

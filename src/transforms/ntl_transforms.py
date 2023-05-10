@@ -29,7 +29,7 @@ class NTLPreparation(AbstractHandler):
 
         print(f"Unique caids shape: {unique_caids.shape}")
 
-        dates = du.get_last_dates(context.year, context.month, context.day, 15)
+        date_str, dates = du.get_last_dates(context.year, context.month, context.day, 15)
 
         dfs = []
 
@@ -39,8 +39,8 @@ class NTLPreparation(AbstractHandler):
 
             with DuckSession() as duck:
                 result = duck.sql(
-                    ExtractQueries \
-                        .PARQUET_READER(context.year, str(d.month).zfill(2), str(d.day).zfill(2), curr_path)
+                    NTLQueries \
+                        .EXTRACT_IN_DATE_RANGE(date_str, curr_path)
                 ).df()
 
                 if not result.empty:
