@@ -1,6 +1,6 @@
 from typing import Any
 from core.core_abstract import AbstractHandler
-from core.context import TransformContext
+from core.context import TransformContext, Context
 
 from queries.ntl_queries import NTLQueries
 from queries.extractqueries import ExtractQueries
@@ -17,17 +17,20 @@ import json
 
 from pandas import concat
 
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 class NTLPreparation(AbstractHandler):
 
-    def prepare(self, context: TransformContext):
+    def prepare(self, context: Context):
         """
         """
         with DuckSession() as duck:
-            unique_caids = duck.sql(
-                NTLQueries.UNIQUE_CAIDS(context.raw_pings_target)
-            ).df()
 
-        print(f"Unique caids shape: {unique_caids.shape}")
+            unique_caids = duck.sql(
+                NTLQueries.UNIQUE_CAIDS(f"{context.base_dir}/raw_pings.parquet")
+            ).df()
 
         date_str, dates = du.get_last_dates(context.year, context.month, context.day, 15)
 
@@ -35,20 +38,20 @@ class NTLPreparation(AbstractHandler):
 
         for d in dates:
             curr_path = \
-                f"{context.data_source}/month={str(d.month).zfill(2)}/day={str(d.day).zfill(2)}"
+                f"{os.environ[f'MOVILIDAD_RAW_{context.year}']}/month={str(d.month).zfill(2)}/day={str(d.day).zfill(2)}"
 
             with DuckSession() as duck:
                 result = duck.sql(
-                    NTLQueries \
-                        .EXTRACT_IN_DATE_RANGE(date_str, curr_path)
+                    NTLQueries.EXTRACT_IN_DATE_RANGE(date_str, curr_path)
                 ).df()
 
                 if not result.empty:
                     dfs.append(result)
         
         last_n_days_data = concat(dfs)
-        print(last_n_days_data.shape)
+
         with DuckSession() as duck:
+
             last_n_days_data = duck.sql("""
             SELECT b.*
             FROM unique_caids AS a
@@ -60,7 +63,6 @@ class NTLPreparation(AbstractHandler):
         
         last_n_days_data["h3index_12"] = last_n_days_data[["latitude", "longitude"]] \
                         .apply(lambda x : h3.geo_to_h3(x["latitude"], x["longitude"], 12), axis=1)
-        print(last_n_days_data.shape)
 
         context.payload = last_n_days_data
 
@@ -82,8 +84,6 @@ class NTLWinners(AbstractHandler):
                 NTLQueries.WINNERS("last_n_days_data")
             ).df()
 
-        print(candidates.shape)
-
         context.payload = candidates
 
         return context
@@ -96,15 +96,14 @@ class NTLJoiner(AbstractHandler):
     def join(self, context: TransformContext):
         
         home_ageb_catalog = context.payload
-        print(f"Home Ageb catalog shape: {home_ageb_catalog.shape}")
 
         with DuckSession() as duck:
 
             pings_with_agebs = duck.sql(
-                NTLQueries.JOIN(context.raw_pings_target)
+                NTLQueries.JOIN(f"{context.base_dir}/raw_pings.parquet")
             ).df()
 
-        pings_with_agebs.to_parquet(context.ntl_pings_target)
+        pings_with_agebs.to_parquet(f"{context.base_dir}/pings_with_home_ageb.parquet")
             
         context.payload = pings_with_agebs
 

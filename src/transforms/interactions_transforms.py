@@ -1,28 +1,25 @@
 from typing import Any
 from core.core_abstract import AbstractHandler
-from core.context import InteractionsContext
+from core.context import InteractionsContext, Context
 
 from queries.interaction_queries import InteractionQueries
 
 from utils.duckaccess import DuckSession
 
-class InteractionsCompute(AbstractHandler):
+class VMInteractionsCompute(AbstractHandler):
     """
     """
-    def compute(self, context: InteractionsContext):
+    def compute(self, context: Context):
         """
         """
-
-        print(context.in_vm)
         with DuckSession() as duck:
 
             interactions_table = duck.sql(
-                InteractionQueries.INTERACTIONS_IN_VM(context.pings_base) \
-                    if context.in_vm else \
-                        InteractionQueries.ALL_INTERACTIONS(context.pings_base)
+                InteractionQueries. \
+                    INTERACTIONS_IN_VM(f"{context.base_dir}/located_pings.parquet")
             ).df()
         
-        interactions_table.to_parquet("./temp/interactions_table.parquet")
+        interactions_table.to_parquet(f"{context.base_dir}/interactions_table.parquet")
 
         context.payload = interactions_table
         

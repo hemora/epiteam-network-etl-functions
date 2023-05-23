@@ -8,3 +8,5 @@ notebooks/
 temp/
 pato_queries/
 BasalNetwork.py
+scripts/
+.vscode/

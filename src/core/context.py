@@ -4,6 +4,8 @@ load_dotenv()
 
 import sys
 
+from utils.path_utils import create_if_not_exists
+
 class Context:
     """ Context class to propagate year, month and day info
     """
@@ -11,6 +13,11 @@ class Context:
         self.__year = year
         self.__month = month
         self.__day = day
+        self.__base_dir = \
+            create_if_not_exists(
+                f"/datos/EpiTeam/insumos_redes/year={year}/month={month}/day={day}"
+            )
+        self.__payload = None
 
     @property
     def year(self):
@@ -32,6 +39,20 @@ class Context:
     @day.setter
     def day(self, value):
         self.__day = value
+
+    @property
+    def base_dir(self):
+        return self.__base_dir
+    @base_dir.setter
+    def base_dir(self, value):
+        self.__base_dir = value
+
+    @property
+    def payload(self):
+        return self.__payload
+    @payload.setter
+    def payload(self, value):
+        self.__payload = value
     
 class ExtractContext(Context):
     """
@@ -137,3 +158,110 @@ class MatrixContext(InteractionsContext):
     @interactions.setter
     def interactions(self, value):
         self.__interactions = value
+
+class SEIRContext(Context):
+
+    def __init__(self, year: str, month: str, day: str):
+        super().__init__(year, month, day)
+        self.__base_dir = \
+            create_if_not_exists(
+                f"/datos/EpiTeam/simulaciones_redes/year={year}/month={month}/day={day}"
+            )
+        
+        self.__gamma = float(os.environ["GAMMA"])
+        self.__tau = float(os.environ["TAU"])
+        self.__R0 = float(os.environ["R0"])
+        self.__Rt = float(os.environ["RT"])
+        self.__total_recovered = int(os.environ["TOTAL_RECOVERED"])
+        self.__total_infected = int(os.environ["TOTAL_INFECTED"])
+        self.__total_population = int(os.environ["TOTAL_POPULATION"])
+        self.__min_ei_attribute = float(os.environ["MIN_EI_ATTR"])
+        self.__max_ei_attribute = float(os.environ["MAX_EI_ATTR"])
+        self.__min_ir_attribute = float(os.environ["MIN_IR_ATTR"])
+        self.__max_ir_attribute = float(os.environ["MAX_IR_ATTR"])
+        self.__seed = int(os.environ["SEIR_SEED"])
+
+
+    @property
+    def gamma(self):
+        return self.__gamma
+    @gamma.setter
+    def gamma(self, value):
+        self.__gamma = value
+    
+    @property
+    def tau(self):
+        return self.__tau
+    @tau.setter
+    def tau(self, value):
+        self.__tau = value
+    
+    @property
+    def R0(self):
+        return self.__R0
+    @R0.setter
+    def R0(self, value):
+        self.__R0 = value
+    
+    @property
+    def Rt(self):
+        return self.__Rt
+    @Rt.setter
+    def Rt(self, value):
+        self.__Rt = value
+
+    @property
+    def min_ei_attribute(self):
+        return self.__min_ei_attribute
+    @min_ei_attribute.setter
+    def min_ei_attribute(self, value):
+        self.__min_ei_attribute = value
+
+    @property
+    def max_ei_attribute(self):
+        return self.__max_ei_attribute
+    @max_ei_attribute.setter
+    def max_ei_attribute(self, value):
+        self.__max_ei_attribute = value
+    
+    @property
+    def min_ir_attribute(self):
+        return self.__min_ir_attribute
+    @min_ir_attribute.setter
+    def min_ir_attribute(self, value):
+        self.__min_ir_attribute = value
+    
+    @property
+    def max_ir_attribute(self):
+        return self.__max_ir_attribute
+    @max_ir_attribute.setter
+    def max_ir_attribute(self, value):
+        self.__max_ir_attribute = value
+
+    @property
+    def total_recovered(self):
+        return self.__total_recovered
+    @total_recovered.setter
+    def total_recovered(self, value):
+        self.__total_recovered = value
+    
+    @property
+    def total_infected(self):
+        return self.__total_infected
+    @total_infected.setter
+    def total_infected(self, value):
+        self.__total_infected = value
+    
+    @property
+    def total_population(self):
+        return self.__total_population
+    @total_population.setter
+    def total_population(self, value):
+        self.__total_population = value
+
+    @property
+    def seed(self):
+        return self.__seed
+    @seed.setter
+    def seed(self, value):
+        self.__seed = value

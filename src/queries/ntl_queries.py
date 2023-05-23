@@ -106,4 +106,5 @@ class NTLQueries(Enum):
     FROM with_cdmx_datetime
     WHERE STRFTIME(cdmx_datetime, '%Y-%m-%d') in {s}
         AND horizontal_accuracy >= 100
+        AND (DATEPART('hour', cdmx_datetime) >= 22 OR DATEPART('hour', cdmx_datetime) < 6)
     """.strip()

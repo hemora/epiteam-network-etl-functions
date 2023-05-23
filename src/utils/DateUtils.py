@@ -36,7 +36,6 @@ def get_last_dates(year: str, month: str, day: str, offset: int):
 
     date_range = [dt for dt in rrule(DAILY, dtstart=start_day, until=end_day) \
                   if dt >= datetime(2020, 1, 1)]
-    print(date_range)
     
     return date_st, date_range
 
