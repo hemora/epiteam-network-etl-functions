@@ -217,24 +217,20 @@ def get_home_ageb_catalog(uniques: pd.DataFrame, df: pd.DataFrame):
 
     return home_ageb_catalog
 
-if __name__ == "__main__":
-
-    YEAR, MONTH, DAY = ("2020", "01", "16")
+def driver(date_tuple: tuple):
+    """
+    """
+    YEAR, MONTH, DAY = date_tuple
 
     ### Obtención de los caids únicos en el día de interés
     with Stopwatch():
 
         unique_caids_in_day = get_unique_caids(YEAR, MONTH, DAY)
 
-        print(unique_caids_in_day)
-        print(unique_caids_in_day.shape)
-
     ### Se obtienen las fechas atribuidas a 15 días anteriores
     with Stopwatch():
 
         last_15_days = get_last_n_days_range(YEAR, MONTH, DAY, 15)
-
-        print(last_15_days)
 
     ### Se obtienen los pings atribuidos a las fechas anteriores y los caids de interés
     with Stopwatch():
@@ -247,8 +243,6 @@ if __name__ == "__main__":
 
             last_15_days_data = p.map(retrive_data, dates_to_retrieve)
 
-        #print(last_15_days_data)
-
     ### Se localizan los pings dentro de su correspondiente AGEB
     with Stopwatch():
 
@@ -256,16 +250,12 @@ if __name__ == "__main__":
 
             located_pings = p.map(locate_in_agebs, last_15_days_data)
         
-        # print(located_pings)
-
     ### Se obtienen los ganadores locales para cada día
     with Stopwatch():
 
         with mp.Pool(5) as p:
 
             local_winners = p.map(get_local_winner, located_pings)
-
-            # print(local_winners)
 
     ### Se obtiene el ganador global a partir de los
     ### ganadores locales
@@ -277,6 +267,19 @@ if __name__ == "__main__":
 
         home_ageb_catalog.to_parquet(f"{os.environ['WAREHOUSE_PATH']}/home_ageb_catalog_daily/{YEAR}_{MONTH}_{DAY}_home_agebs.parquet")
 
-        print(home_ageb_catalog)
+
+if __name__ == "__main__":
+
+    dates = get_last_n_days_range("2020", "03", "01", 29)
+
+    print(dates)
+
+    with Stopwatch():
+
+        for d in dates:
+
+            driver(d)
+
+    
 
 
