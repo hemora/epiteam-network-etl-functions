@@ -41,7 +41,10 @@ def get_last_dates(year: str, month: str, day: str, offset: int):
     date_range = [dt for dt in rrule(DAILY, dtstart=start_day, until=end_day) \
                   if dt >= datetime(2020, 1, 1)]
     
-    return date_st, date_range
+    parsed_dates = [(str(d.year), str(d.month).zfill(2), str(d.day).zfill(2)) \
+                    for d in date_range]
+    
+    return date_st, parsed_dates
 
 def minus_days(year: str, month: str, day: str, trust_window: int = 2):
     """
