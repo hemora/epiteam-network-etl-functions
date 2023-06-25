@@ -2,6 +2,7 @@ from datetime import timedelta, date, datetime
 from dateutil.relativedelta import *
 from dateutil.rrule import rrule, DAILY
 from data_classes.date_container import DateContext
+import calendar
 
 def trusted_range(year: str, month: str, day: str, interval_size: int):
     """
@@ -72,7 +73,14 @@ def date_range(year: str, month: str, day: str, interval_size: int):
 
     return parsed_dates
 
+def first_and_last_days(year: str, month: str):
+    """
+    """
+    start_day = date(int(year), int(month), 1)
+    # next_month = start_day.replace(day=28) + timedelta(days=4)
+    last_day = calendar._monthlen(int(year), int(month))
 
+    return (start_day.day, last_day)
 
 
 
