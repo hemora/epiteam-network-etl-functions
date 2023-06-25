@@ -1,0 +1,121 @@
+output:
+  reprex::reprex_document:
+    venue: "gh"
+    advertise: FALSE
+    session_info: TRUE
+    style: TRUE
+    comment: "#;-)"
+    tidyverse_quiet: FALSE
+    std_out_err: TRUE
+knit: reprex::reprex_render
+---
+
+# Imports
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(DBI)
+library(arrow)
+## Read environment variables with secrets
+```
+Inicializando pato
+```{r}
+duck <- dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+```
+
+# ¿Cómo se obtiene el catálogo de Home Ageb's?
+
+La estimación de la vivienda se realiza en dos pasos:
+
+  1. Para cada día $d$ y caid $c$ se se obtiene y almacena un catálogo
+  de ganadores que estima el NTL de $c$ en $d$.
+  2. Dada una fecha de interés $d$, se almacena el ganador local de $d$ y
+  se busca en los ganadores locales de los 15 días anteriores a $d$ por
+  el ganador local más frecuente.
+
+# Obtención de un ganador "local"
+
+El ganador local requiere de fijar un día de interés $d$:
+```{r}
+## Un día en particular
+YEAR <- "2020"
+MONTH <- "01"
+DAY <- "01"
+```
+
+Dado $d$, se leen sus pings localizados provenientes del repositorio 
+`fact_pings_base`:
+```{r echo=T, error=T}
+d_data_path <- 
+  str_interp("/datos/EpiTeam/warehouse/fact_pings_base/${YEAR}_${MONTH}_${DAY}_pings")
+d_data_path
+
+arrow_ds <-
+  arrow::open_dataset(d_data_path
+  , partitioning = c("cve_zm"))
+arrow_ds
+
+arrow::to_duckdb(arrow_ds, table_name = "located_pings_in_d", con = duck)
+
+LOCATED_PINGS <-
+  dbGetQuery(duck
+    , str_interp("
+    SELECT *
+    FROM located_pings_in_d
+    WHERE cve_zm != '__HIVE_DEFAULT_PARTITION__'
+    USING SAMPLE 0.5 PERCENT (bernoulli)
+    ")) |> collect()
+
+duckdb::duckdb_register(duck, "sample_of_d", LOCATED_PINGS)
+```
+
+1. Se obtienen aquellos **pings que se encuentran entre las 22:00 pm - 06:00 am**.
+
+```{r echo=T}
+only_pings_in_nighttime <-
+  dbGetQuery(duck
+    , str_interp("
+    WITH
+    not_null_cve_geo AS (
+        SELECT *
+        FROM sample_of_d
+        WHERE cve_geo IS NOT NULL
+    )
+
+    , only_in_nighttime_hours AS (
+        SELECT *
+        FROM not_null_cve_geo
+        WHERE (DATEPART('hour', cdmx_datetime) >= 22 OR DATEPART('hour', cdmx_datetime) < 6)
+    )
+
+    SELECT *
+    FROM only_in_nighttime_hours
+    ")) |> collect()
+
+duckdb::duckdb_register(duck, "only_pings_in_nighttime", only_pings_in_nighttime)
+as_tibble(only_pings_in_nighttime)
+```
+
+2. Se crean obtiene el cluster por ventana de tiempo
+```{r}
+clustering_by_time_window <-
+  dbGetQuery(duck
+    , str_interp("
+    WITH
+    clustering_by_time_window AS (
+        SELECT *
+            , TIME_BUCKET(INTERVAL '600 seconds', cdmx_datetime::TIMESTAMP, min_datetime::TIMESTAMP) AS tw_cluster
+        FROM (
+            SELECT *
+                , MIN(cdmx_datetime) OVER() AS min_datetime
+            FROM only_pings_in_nighttime
+        )
+    )
+
+    SELECT *
+    FROM clustering_by_time_window
+    ")) |> collect()
+
+duckdb::duckdb_register(duck, "clustering_by_time_window", clustering_by_time_window)
+```
