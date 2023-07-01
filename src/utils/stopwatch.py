@@ -19,6 +19,28 @@ class Stopwatch():
         print(f"Ended at {str(datetime.now())}")
         print(f"Elapsed time: {str(timedelta(seconds=elapsed))}")
 
+class LoggerStopwatch:
+    def __init__(self, logger) -> None:
+        self.__logger = logger
+
+    def __enter__(self):
+        self.start = time.time()
+        self.__logger.info(f"Started at {str(datetime.now())}")
+        return self
+
+
+    def __exit__(self, type, value, traceback):
+        self.end = time.time()
+        elapsed = self.end - self.start
+        self.__logger.info(f"Ended at {str(datetime.now())}")
+        self.__logger.info(f"Elapsed time: {str(timedelta(seconds=elapsed))}")
+
+    def report_til_here(self):
+        til_here = time.time()
+        elapsed = til_here - self.start
+        self.__logger.info(f"Elapsed time til here: {str(timedelta(seconds=elapsed))}")
+        return
+
 class Benchmark():
     """
     """
