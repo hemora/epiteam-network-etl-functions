@@ -7,5 +7,5 @@ images/
 temp/
 pato_queries/
 BasalNetwork.py
-scripts/
+test_scripts/
 .vscode/
