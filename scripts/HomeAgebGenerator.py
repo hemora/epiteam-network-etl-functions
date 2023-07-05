@@ -66,7 +66,7 @@ class LocalWinnerGenerator:
                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                     datefmt='%H:%M:%S',
                     level=logging.INFO)
-        self.__logger = logging.getLogger(f"Network Generator: {self.__year}-{self.__month}-{self.__day}")
+        self.__logger = logging.getLogger(f"Home Ageb Generator: {self.__year}-{self.__month}-{self.__day}")
 
     def get_local_winner(self, arrow_table: pa.Table):
         """
@@ -197,12 +197,12 @@ class LocalWinnerGenerator:
 
         self.__logger.info(f"COMPUTING LOCAL WINNER ...")
         result = self.get_local_winner(arrow_table)
-        self.__logger.info(f"... DOME")
+        self.__logger.info(f"... DONE")
 
         output_dir = pu.create_if_not_exists(self.__target)
         self.__logger.info(f"WRITING DATA INTO: {output_dir}")
         pq.write_to_dataset(result, root_path=output_dir, partition_cols=["type","confidence"])
-        self.__logger.info(f"... DOME")
+        self.__logger.info(f"... DONE")
 
         return
 
