@@ -201,8 +201,11 @@ def main(date: str, period: str, target: str) -> None:
         
         print(batches)
         
-        with mp.Pool(3) as p:
-            p.map(driver, batches) 
+        # with mp.Pool(3) as p:
+        #     p.map(driver, batches) 
+
+        for b in batches:
+            driver(b)
 
 
 if __name__ == "__main__":
