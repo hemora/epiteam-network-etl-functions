@@ -140,7 +140,7 @@ def locate_in_agebs_arrow(tuple):
 def driver(i: int):
     """
     """
-    YEAR, MONTH, DAY = ("2021", "01", str(i).zfill(2))
+    YEAR, MONTH, DAY = ("2021", "12", str(i).zfill(2))
 
 
     output_dir = pu.create_if_not_exists(
@@ -221,16 +221,16 @@ if __name__ == "__main__":
 
     with Stopwatch():
 
-        YEAR, MONTH = ("2021", "01")
+        YEAR, MONTH = ("2021", "12")
 
         start, end = du.first_and_last_days(YEAR, MONTH)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             executor.map(driver, range(start, end+1))
+
         # [driver(i) for i in range(1,32)]
         # for i in range(start, end+1):
         #     driver(i)
 
 
-    # print("") 
-        #driver(13)
+        # driver(10)
