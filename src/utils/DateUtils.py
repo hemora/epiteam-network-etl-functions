@@ -15,7 +15,7 @@ def trusted_range(year: str, month: str, day: str, interval_size: int):
 
     date_range = [dt for dt in rrule(DAILY, dtstart=start_day, until=end_day) \
                   if dt >= datetime(2020, 1, 1) \
-                    if dt <= datetime(2022, 1, 1) ]
+                    if dt < datetime(2022, 1, 1) ]
     
     parsed_dates = [(str(d.year), str(d.month).zfill(2), str(d.day).zfill(2)) \
                     for d in date_range]
@@ -66,7 +66,7 @@ def date_range(year: str, month: str, day: str, interval_size: int):
 
     date_range = [dt for dt in rrule(DAILY, dtstart=start_day, until=end_day) \
                   if dt >= datetime(2020, 1, 1) \
-                    if dt <= datetime(2022, 1, 1) ]
+                    if dt < datetime(2022, 1, 1) ]
     
     parsed_dates = [(str(d.year), str(d.month).zfill(2), str(d.day).zfill(2)) \
                     for d in date_range]
