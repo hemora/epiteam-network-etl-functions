@@ -38,19 +38,25 @@ class NetworkBuilder:
     def __init__(self, year:str, month: str, day: str
                  , zm: str
                  , target: str
-                 , logs: str) -> None:
+                 , logs: str
+                 , materials_path: str) -> None:
         self.__year = year
         self.__month = month
         self.__day = day
         self.__zm = zm
         self.__target = f"{str(target).rstrip('/')}/year={self.__year}/month={self.__month}/day={self.__day}"
-
+        
         logging.basicConfig(filename=f"{logs}/network_build_{datetime.datetime.now()}.log",
                     filemode='a',
                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                     datefmt='%H:%M:%S',
                     level=logging.INFO)
         self.__logger = logging.getLogger(f"Network Builder: {self.__year}-{self.__month}-{self.__day}")
+
+        if materials_path is None:
+            self.__materials_path = self.__target + "/side_results"
+        else:
+            self.__materials_path = materials_path
 
     def get_pings_dataset(self) -> list[pa.Table]:
         """
@@ -326,7 +332,7 @@ class NetworkBuilder:
         else:
             self.__logger.info(f"SCALING TO {scale_size}")
 
-        tables_path = f"{self.__target}/side_results"
+        tables_path = self.__materials_path
 
         read_sizes = pd.read_parquet(f"{tables_path}/ageb_sizes.parquet")
 
@@ -421,7 +427,7 @@ class NetworkBuilder:
 
         scaled_size, zipped, i = t
 
-        tables_path = f"{self.__target}/side_results"
+        tables_path = f"{self.__materials_path}"
 
         # obs_m = np.loadtxt(f"{tables_path}/observed_matrix.npy")
         # tot_m = np.loadtxt(f"{tables_path}/total_matrix.npy")
@@ -457,26 +463,24 @@ class NetworkBuilder:
 
         ##Escribo el graphml
         nx.write_graphml(g2, f"{self.__target}/{self.__year}_{self.__month}_{self.__day}_SEED_{i}.graphml")
+        # nx.write_graphml(g2, f"{self.__target}/{self.__year}_{self.__month}_{self.__day}_SEED_{i}_FULL.graphml")
 
         return
     
-    def build_network(self, size):
+    def build_network(self, size, iterative: int):
         """
         """
         scaled_size, tags = self.scale(size)
 
-        payload = [(scaled_size, tags, i) for i in range(100)]
+        if iterative is None:
+            self.gen_network((scaled_size, tags, 0))
+        else:
+            payload = [(scaled_size, tags, i) for i in range(iterative+1)]
 
-        with mp.Pool(10) as p:
-            p.map(self.gen_network, payload)
-
-        # self.gen_network(scaled_size, tags)
-
+            with mp.Pool(10) as p:
+                p.map(self.gen_network, payload)
 
 ########################################################################################################
-#@click.command(help="""
-#               Tool to generate networks trough a series of stages
-#               """)
 @click.command()
 @click.argument("date", required=True)
 @click.option('-t', "--target"
@@ -512,15 +516,27 @@ class NetworkBuilder:
               """)
 @click.option("--scale", default=None
               , help="""
-              A ZM string (e.g. "09.01") used to filter the set of pings to the
-              desired zona metropolitana. If none is provided then the whole dataset is used.
+              A number used as the final number of nodes in the network.
+              """)
+@click.option("--materials_path"
+              , default=None
+              , help="""
+              The directory where the sizes and probability matrixes are stored
+              """)
+@click.option("--iterative"
+              , default=None
+              , help="""
+              If a NUMBER is given, then a NUMBER of networks will be created. 
+              A single network is builded otherwise.
               """)
 def main(date: str, target: str, logs: str
          , zm: str
          , gen_tables: bool
          , prob_matrix: bool
          , build_network: bool
-         , scale: int) -> None:
+         , scale: int
+         , materials_path: str
+         , iterative: int) -> None:
     """ Tool to generate networks trough a series of stages
 
         DATE: A string date like YY-mm-dd that represents the set of pings used to build
@@ -528,7 +544,7 @@ def main(date: str, target: str, logs: str
     """
     year, month, day = date.split('-')
     
-    nb = NetworkBuilder(year, month, day, zm, target, logs)
+    nb = NetworkBuilder(year, month, day, zm, target, logs, materials_path)
 
     if gen_tables:
         nb.get_tables()
@@ -537,9 +553,8 @@ def main(date: str, target: str, logs: str
         nb.get_probs_matrix()
 
     if build_network:
-        nb.build_network(scale)
+        nb.build_network(scale, iterative)
 
-    
 if __name__ == "__main__":
 
     with Stopwatch():
