@@ -58,16 +58,22 @@ class SEIRContext:
 
 
 class SimulationManager:
+    """ Class used to store methods involved in the simulation running process
+    given a network
     """
-    """
-    def __init__(self, network
+    def __init__(self, network: str
                  , target: str
                  , logs: str
                  , seir_context: SEIRContext
                 ) -> None:
+        """ Class Constructor
+        network (str): A path to a network in .graphml format
+        target (str): A path to dispose the final results
+        logs (str): A path to dispose the log file related to the instance processing
+        seir_context (SEIRContext): Class of configurations
+        """
 
-
-        self.__target = f"{str(target).rstrip('/')}"
+        self.__target = str(target).rstrip('/')
         
         logging.basicConfig(filename=f"{logs}/simulation_run_{datetime.datetime.now()}.log",
                     filemode='a',
@@ -80,8 +86,15 @@ class SimulationManager:
 
         self.__network = network
 
+    # TODO: Add seed parameter to this method
     def get_model_graph(self, g):
-        """
+        """ Given a network
+            , computes the expose -> infect and infect -> recover weights for each node
+            Also computes the transmission weight for each edge
+        Params:
+            g (nx.network): A network readed with the networkx library
+        Returns:
+            an enriched networkx graph with the mentioned weights
         """
         # Not really a copy
         g_copy = g
@@ -120,7 +133,11 @@ class SimulationManager:
         return g_copy
     
     def get_transition_graphs(self):
-        """
+        """ Computes a 
+            - Spontaneus transition graph
+            - Neighbour-induced transition graph
+        Returns:
+            a tuple containing both graphs
         """
         transmission_rate = \
             1 / ( 1 / self.__seir.gamma) * self.__seir.Rt
@@ -136,7 +153,13 @@ class SimulationManager:
         return H, J
 
     def get_IC(self, g, seed):
-        """
+        """ Computes a random generated catalog that defines which nodes are infected, recovered, etc..
+        Params:
+            g (nx.network): A network whose nodes gonna be infected/recovered/etc..
+                seed (int): A seed for reproducibility
+        Returns:
+            defaultdict that defines the randomized infected/recovered/etc.. nodes. Otherwise
+                their status is S.
         """
         poblacion_escalada = g.number_of_nodes()
 
@@ -163,7 +186,12 @@ class SimulationManager:
         return IC
     
     def driver(self, seed):
-        """
+        """ Class that defines the pipeline sequence to run a SEIR simulation
+        Params:
+            seed (int): The seed that's going to be used for random processing
+        Returns:
+            None but writes the simulation result into a serialized pickle object
+                in the {target} directory
         """
         self.__logger.info("RUNNING SIMULATIONS WITH PARAMENTERS:")
         self.__logger.info(f"Gamma: {self.__seir.gamma}")
@@ -264,18 +292,22 @@ class SimulationManager:
 @click.option("--total_recovered"
               , default=None
               , help="""
+              Total of recovered individuals in the simulation
               """)
 @click.option("--total_infected"
               , default=None
               , help="""
+              Total of infected individuals in the simulation
               """)
 @click.option("--total_population"
               , default=None
               , help="""
+              Total of individuales involved in the simulation
               """)
 @click.option("--seed"
               , default=3696
               , help="""
+              An integer number used as seed for random processing
               """)
 def main(network_path: str, target: str, logs: str
          , iterative: int
@@ -294,8 +326,8 @@ def main(network_path: str, target: str, logs: str
          ) -> None:
     """ Tool to run simulations under certain conditions
 
-        NETWORK: A string indicating the path of the network over which the
-        SEIR simulation must be run
+        NETWORK_PATH: A string indicating the path of the network over which the
+        SEIR simulation is going to run
     """
     seir_context = SEIRContext()
 
