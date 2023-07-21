@@ -427,13 +427,12 @@ class NetworkBuilder:
 
         scaled_size, zipped, i = t
 
-        tables_path = f"{self.__materials_path}"
+        tables_path = self.__materials_path
 
         # obs_m = np.loadtxt(f"{tables_path}/observed_matrix.npy")
         # tot_m = np.loadtxt(f"{tables_path}/total_matrix.npy")
 
         probs = np.loadtxt(f"{tables_path}/probs_matrix.npy")
-
 
         sbm = nx.stochastic_block_model(scaled_size, probs, seed=i)
         self.__logger.info("WRITING TO GRAPHML")
@@ -462,8 +461,8 @@ class NetworkBuilder:
         nx.set_node_attributes(g2, nuevo_diccionario, "block") ##le agrego un atributo (bloque) a cada nodo
 
         ##Escribo el graphml
-        nx.write_graphml(g2, f"{self.__target}/{self.__year}_{self.__month}_{self.__day}_SEED_{i}.graphml")
-        # nx.write_graphml(g2, f"{self.__target}/{self.__year}_{self.__month}_{self.__day}_SEED_{i}_FULL.graphml")
+        output = pu.create_if_not_exists(self.__target)
+        nx.write_graphml(g2, f"{output}/{self.__year}_{self.__month}_{self.__day}_SEED_{i}_FULL.graphml")
 
         return
     
