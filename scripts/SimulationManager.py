@@ -86,8 +86,7 @@ class SimulationManager:
 
         self.__network = network
 
-    # TODO: Add seed parameter to this method
-    def get_model_graph(self, g):
+    def get_model_graph(self, g, seed):
         """ Given a network
             , computes the expose -> infect and infect -> recover weights for each node
             Also computes the transmission weight for each edge
@@ -100,6 +99,8 @@ class SimulationManager:
         g_copy = g
 
         self.__logger.info(f"READED GRAPH")
+
+        random.seed(seed)
 
         ei_node_attribut \
             ={node:random.uniform(a=self.__seir.min_ei_attribute
@@ -209,10 +210,10 @@ class SimulationManager:
         with LoggerStopwatch(self.__logger) as sw:
 
             graph = nx.convert_node_labels_to_integers(nx.read_graphml(self.__network))
-            self.__logger.info(f"READING GRAPH FROM: {self.__network}")
+            self.__logger.info(f"READING GRAPH FROM:\n{self.__network}")
             sw.report_til_here()
 
-            prepared_graph = self.get_model_graph(graph)
+            prepared_graph = self.get_model_graph(graph, seed)
             sw.report_til_here()
 
             H, J = self.get_transition_graphs()
@@ -366,7 +367,11 @@ def main(network_path: str, target: str, logs: str
 
     sim_manager = SimulationManager(network_path, target, logs, seir_context)
 
-    sim_manager.driver(seed)
+    if iterative is not None:
+        with mp.Pool(10) as p:
+            p.map(sim_manager.driver, range(1,int(iterative)+1))
+    else:
+        sim_manager.driver(seed)
 
 ########################################################################################################
 
