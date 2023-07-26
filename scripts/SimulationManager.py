@@ -333,37 +333,37 @@ def main(network_path: str, target: str, logs: str
     seir_context = SEIRContext()
 
     if gamma is not None:
-        seir_context.gamma = gamma
+        seir_context.gamma = float(gamma)
 
     if tau is not None:
-        seir_context.tau = tau
+        seir_context.tau = float(tau)
 
     if r0 is not None:
-        seir_context.r0 = r0
+        seir_context.r0 = float(r0)
 
     if rt is not None:
-        seir_context.rt = rt
+        seir_context.rt = float(rt)
 
     if min_ei is not None:
-        seir_context.min_ei_attribute = min_ei
+        seir_context.min_ei_attribute = float(min_ei)
 
     if max_ei is not None:
-        seir_context.max_ei_attribute = max_ei
+        seir_context.max_ei_attribute = float(max_ei)
 
     if min_ir is not None:
-        seir_context.min_ir_attribute = min_ir
+        seir_context.min_ir_attribute = float(min_ir)
 
     if max_ir is not None:
-        seir_context.max_ir_attribute = max_ir
+        seir_context.max_ir_attribute = float(max_ir)
 
     if total_recovered is not None:
-        seir_context.recuperados_totales = total_recovered
+        seir_context.recuperados_totales = int(total_recovered)
 
     if total_infected is not None:
-        seir_context.infectados_totales = total_infected
+        seir_context.infectados_totales = int(total_infected)
 
     if total_population is not None:
-        seir_context.poblacion_total = total_population
+        seir_context.poblacion_total = int(total_population)
 
     sim_manager = SimulationManager(network_path, target, logs, seir_context)
 
