@@ -4,9 +4,8 @@ tools/
 .env
 logs/
 images/
-notebooks/
 temp/
 pato_queries/
 BasalNetwork.py
-scripts/
+test_scripts/
 .vscode/
